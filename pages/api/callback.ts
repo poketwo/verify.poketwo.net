@@ -46,10 +46,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.redirect(`/captcha/${session.uid}?${params}`).end();
   }
 
+  const uid = session.uid;
+  session.destroy();
+
   const params = new URLSearchParams({
     success: "Thanks for verifying! You can now close this page.",
   });
-  return res.redirect(`/captcha/${session.uid}?${params}`).end();
+  return res.redirect(`/captcha/${uid}?${params}`).end();
 };
 
 export default handler;
