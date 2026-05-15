@@ -6,5 +6,5 @@ export default cleanEnv(process.env, {
   DISCORD_CLIENT_SECRET: str(),
   WEBHOOK_URL: str(),
   WEBHOOK_SECRET: str(),
-  RECAPTCHA_SECRET_KEY: str(),
+  HCAPTCHA_SECRET_KEY: str(),
 });

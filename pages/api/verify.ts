@@ -10,7 +10,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(405).end();
   }
 
-  const { "g-recaptcha-response": token, uid } = req.body;
+  const { "h-captcha-response": token, uid } = req.body;
   if (typeof token !== "string") {
     res.status(400).end();
     return;
@@ -20,14 +20,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
 
-  const resp = await fetch(
-    "https://www.recaptcha.net/recaptcha/api/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `secret=${env.RECAPTCHA_SECRET_KEY}&response=${token}`,
-    },
-  );
+  const resp = await fetch("https://api.hcaptcha.com/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `secret=${env.HCAPTCHA_SECRET_KEY}&response=${token}`,
+  });
 
   const json = <{ success: boolean }>await resp.json();
   if (!json.success) return res.status(400).end();
