@@ -2,7 +2,7 @@ import { CheckCircleIcon, ExclamationIcon } from "@heroicons/react/solid";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import publicEnv from "~/lib/public-env";
 
 type AlertProps = {
@@ -40,7 +40,7 @@ const Page = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4">
       <form
-        action={`/api/recaptcha`}
+        action={`/api/verify`}
         method="POST"
         className="max-w-xs w-full flex flex-col items-start space-y-5"
       >
@@ -51,9 +51,9 @@ const Page = () => {
 
         <input type="hidden" name="uid" value={uid} />
 
-        <ReCAPTCHA
-          sitekey={publicEnv.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-          onChange={(token) => setToken(token ?? undefined)}
+        <HCaptcha
+          sitekey={publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+          onVerify={(token) => setToken(token)}
         />
 
         <button
