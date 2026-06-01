@@ -41,7 +41,7 @@ const Page = () => {
     <div className="min-h-screen flex flex-col justify-center items-center p-4">
       <form
         action={`/api/verify`}
-        method="POST"
+        method="GET"
         className="max-w-xs w-full flex flex-col items-start space-y-5"
       >
         {success && <Alert success message={success.toString()} />}
@@ -54,6 +54,7 @@ const Page = () => {
         <HCaptcha
           sitekey={publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
           onVerify={(token) => setToken(token)}
+          onExpire={() => setToken(undefined)}
         />
 
         <button

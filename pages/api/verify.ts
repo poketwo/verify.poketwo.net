@@ -6,11 +6,18 @@ import { getSession } from "~/lib/session";
 import absoluteUrl from "next-absolute-url";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== "POST") {
-    res.status(405).end();
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET, POST");
+    return res.status(405).end();
   }
 
-  const { "h-captcha-response": token, uid } = req.body;
+  const { "h-captcha-response": token, uid } =
+    req.method === "GET"
+      ? req.query
+      : (req.body as Partial<
+          Record<"h-captcha-response" | "uid", string | string[]>
+        >);
+
   if (typeof token !== "string") {
     res.status(400).end();
     return;
@@ -20,10 +27,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
 
+  const body = new URLSearchParams({
+    secret: env.HCAPTCHA_SECRET_KEY,
+    response: token,
+  });
   const resp = await fetch("https://api.hcaptcha.com/siteverify", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `secret=${env.HCAPTCHA_SECRET_KEY}&response=${token}`,
+    body,
   });
 
   const json = <{ success: boolean }>await resp.json();
@@ -42,6 +53,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     redirectUri: `${origin}/api/callback`,
   });
 
+  res.setHeader("Referrer-Policy", "no-referrer");
   res.redirect(url);
 };
 
