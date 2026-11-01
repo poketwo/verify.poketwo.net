@@ -55,9 +55,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const uid = session.uid;
   session.destroy();
 
-  const { network_suspended } = await wh_resp.json().catch(() => ({}));
+  const result = await wh_resp.json().catch(() => null);
   const params = new URLSearchParams({
-    success: network_suspended ? NETWORK_SUSPENDED_MESSAGE : VERIFIED_MESSAGE,
+    success: result?.network_suspended ? NETWORK_SUSPENDED_MESSAGE : VERIFIED_MESSAGE,
   });
   return res.redirect(`/captcha/${uid}?${params}`).end();
 };
