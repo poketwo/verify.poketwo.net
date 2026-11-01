@@ -4,8 +4,12 @@ import crypto from "crypto";
 import { getSession } from "~/lib/session";
 import absoluteUrl from "next-absolute-url";
 import oauth from "~/lib/oauth";
+import { networkFingerprint } from "~/lib/network";
 
 const WEBHOOK_URL = env.WEBHOOK_URL;
+const VERIFIED_MESSAGE = "Thanks for verifying! You can now close this page.";
+const NETWORK_SUSPENDED_MESSAGE =
+  "Thanks for verifying! Your account is still restricted because this network is suspended. Turn off any VPN or proxy, or switch to mobile data, and verify again.";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { code, state } = req.query;
@@ -32,12 +36,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.redirect(`/captcha/${session.uid}?${params}`).end();
   }
 
+  const network = networkFingerprint(req);
   const wh_resp = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: new Headers({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       uid: session.uid,
       secret: env.WEBHOOK_SECRET,
+      ...(network && { network }),
     }),
   });
 
@@ -46,10 +52,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.redirect(`/captcha/${session.uid}?${params}`).end();
   }
 
+  const uid = session.uid;
+  session.destroy();
+
+  const { network_suspended } = await wh_resp.json().catch(() => ({}));
   const params = new URLSearchParams({
-    success: "Thanks for verifying! You can now close this page.",
+    success: network_suspended ? NETWORK_SUSPENDED_MESSAGE : VERIFIED_MESSAGE,
   });
-  return res.redirect(`/captcha/${session.uid}?${params}`).end();
+  return res.redirect(`/captcha/${uid}?${params}`).end();
 };
 
 export default handler;
