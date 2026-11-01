@@ -20,7 +20,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const token = await oauth.tokenRequest({
     code,
     grantType: "authorization_code",
-    scope: "identify email",
+    scope: "identify",
     redirectUri: `${origin}/api/callback`,
   });
   const user = await oauth.getUser(token.access_token);
