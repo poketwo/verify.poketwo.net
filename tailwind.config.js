@@ -14,7 +14,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        discord: { dark: "#313338" },
+        discord: { dark: "#313338", blurple: "#5865F2" },
       },
     },
   },

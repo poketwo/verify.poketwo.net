@@ -1,13 +1,15 @@
 import { getIronSession } from "iron-session";
-import { NextApiRequest, NextApiResponse } from "next";
+import { IncomingMessage, ServerResponse } from "http";
+import { Challenge } from "./challenge";
 import env from "./env";
 
 type SessionData = Partial<{
-  id: string;
-  uid: string;
+  challenge: Challenge;
+  discordId: string;
+  oauth: { state: string; uid: string };
 }>;
 
-export async function getSession(req: NextApiRequest, res: NextApiResponse) {
+export async function getSession(req: IncomingMessage, res: ServerResponse) {
   const session = await getIronSession<SessionData>(req, res, {
     password: env.SECRET_KEY,
     cookieName: "poketwo-verify",
