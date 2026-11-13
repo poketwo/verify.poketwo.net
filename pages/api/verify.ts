@@ -41,12 +41,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const solveMs = Date.now() - challenge.issuedAt;
   const { origin } = absoluteUrl(req);
-  const remoteip = req.headers["cf-connecting-ip"];
-  const verified = await verifyHCaptcha(
-    token,
-    new URL(origin).hostname,
-    typeof remoteip === "string" ? remoteip : undefined,
-  );
+  const verified = await verifyHCaptcha(token, new URL(origin).hostname);
   if (!verified) {
     return redirectWith(res, uid, {
       error: "The captcha couldn't be verified. Please try again.",
