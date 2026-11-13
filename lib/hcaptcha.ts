@@ -16,6 +16,12 @@ const fail = (reason: string): HCaptchaResult => {
   return { ok: false, reason };
 };
 
+// hCaptcha reports the sitekey's configured domain (e.g. poketwo.net), not the
+// exact subdomain the widget ran on.
+const isSameSite = (solvedOn: string, hostname: string) =>
+  solvedOn === hostname ||
+  (solvedOn.includes(".") && hostname.endsWith(`.${solvedOn}`));
+
 export const verifyHCaptcha = async (
   token: string,
   hostname: string,
@@ -49,7 +55,7 @@ export const verifyHCaptcha = async (
   if (!json.success) {
     return fail(json["error-codes"]?.join(", ") || "unknown error");
   }
-  if (json.hostname !== hostname) {
+  if (!json.hostname || !isSameSite(json.hostname, hostname)) {
     return fail(`solved on ${json.hostname ?? "no hostname"}, not ${hostname}`);
   }
   return { ok: true };
