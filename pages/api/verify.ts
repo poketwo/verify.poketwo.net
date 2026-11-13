@@ -1,48 +1,73 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import crypto from "crypto";
-import oauth from "~/lib/oauth";
-import env from "~/lib/env";
-import { getSession } from "~/lib/session";
 import absoluteUrl from "next-absolute-url";
+import env from "~/lib/env";
+import { isValidChallenge } from "~/lib/challenge";
+import { verifyHCaptcha } from "~/lib/hcaptcha";
+import { getSession } from "~/lib/session";
+import { isUid } from "~/lib/uid";
+
+const redirectWith = (
+  res: NextApiResponse,
+  uid: string,
+  result: { error: string } | { success: string },
+) => res.redirect(303, `/captcha/${uid}?${new URLSearchParams(result)}`);
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
-    res.status(405).end();
+    res.setHeader("Allow", "POST");
+    return res.status(405).end();
   }
 
-  const { "h-captcha-response": token, uid } = req.body;
-  if (typeof token !== "string") {
-    res.status(400).end();
-    return;
+  const { "h-captcha-response": token, uid, nonce } = req.body;
+  if (typeof token !== "string" || typeof nonce !== "string" || !isUid(uid)) {
+    return res.status(400).end();
   }
-  if (typeof uid !== "string" || !/^\d+$/.test(uid)) {
-    res.status(400).end();
-    return;
-  }
-
-  const resp = await fetch("https://api.hcaptcha.com/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `secret=${env.HCAPTCHA_SECRET_KEY}&response=${token}`,
-  });
-
-  const json = <{ success: boolean }>await resp.json();
-  if (!json.success) return res.status(400).end();
 
   const session = await getSession(req, res);
-  session.id = crypto.randomBytes(16).toString("hex");
-  session.uid = uid;
+  const { challenge, discordId } = session;
+  delete session.challenge;
   await session.save();
 
-  const state = crypto.createHash("sha256").update(session.id).digest("hex");
-  const { origin } = absoluteUrl(req);
-  const url = oauth.generateAuthUrl({
-    state,
-    scope: "identify",
-    redirectUri: `${origin}/api/callback`,
-  });
+  if (discordId !== uid) {
+    return redirectWith(res, uid, {
+      error: "Please sign in with Discord first.",
+    });
+  }
+  if (!isValidChallenge(challenge, uid, nonce)) {
+    return redirectWith(res, uid, {
+      error: "This page expired. Please try again.",
+    });
+  }
 
-  res.redirect(url);
+  const solveMs = Date.now() - challenge.issuedAt;
+  const { origin } = absoluteUrl(req);
+  const remoteip = req.headers["cf-connecting-ip"];
+  const verified = await verifyHCaptcha(
+    token,
+    new URL(origin).hostname,
+    typeof remoteip === "string" ? remoteip : undefined,
+  );
+  if (!verified) {
+    return redirectWith(res, uid, {
+      error: "The captcha couldn't be verified. Please try again.",
+    });
+  }
+
+  const whResp = await fetch(env.WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid,
+      secret: env.WEBHOOK_SECRET,
+      solve_ms: solveMs,
+    }),
+  }).catch(() => null);
+  if (!whResp?.ok)
+    return redirectWith(res, uid, { error: "Unexpected error." });
+
+  return redirectWith(res, uid, {
+    success: "Thanks for verifying! You can now close this page.",
+  });
 };
 
 export default handler;
