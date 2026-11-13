@@ -38,7 +38,7 @@ const Page = () => {
   const [token, setToken] = useState<string | undefined>();
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-discord-dark text-gray-100">
       <form
         action={`/api/verify`}
         method="POST"
@@ -53,6 +53,7 @@ const Page = () => {
 
         <HCaptcha
           sitekey={publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY}
+          theme="dark"
           onVerify={(token) => setToken(token)}
         />
 
