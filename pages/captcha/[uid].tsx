@@ -5,7 +5,7 @@ import { useState } from "react";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { createChallenge } from "~/lib/challenge";
 import publicEnv from "~/lib/public-env";
-import { getSession } from "~/lib/session";
+import { getSession, signedInUser } from "~/lib/session";
 import { isUid } from "~/lib/uid";
 
 type AlertProps = {
@@ -113,7 +113,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   if (!isUid(uid)) return { notFound: true };
 
   const session = await getSession(req, res);
-  if (session.discordId !== uid) return { props: { nonce: null } };
+  if (signedInUser(session)?.id !== uid) return { props: { nonce: null } };
 
   session.challenge = createChallenge(uid);
   await session.save();

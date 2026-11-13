@@ -3,7 +3,7 @@ import absoluteUrl from "next-absolute-url";
 import env from "~/lib/env";
 import { isValidChallenge } from "~/lib/challenge";
 import { verifyHCaptcha } from "~/lib/hcaptcha";
-import { getSession } from "~/lib/session";
+import { getSession, signedInUser } from "~/lib/session";
 import { isUid } from "~/lib/uid";
 
 const redirectWith = (
@@ -24,11 +24,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const session = await getSession(req, res);
-  const { challenge, discordId } = session;
+  const { challenge } = session;
+  const user = signedInUser(session);
   delete session.challenge;
   await session.save();
 
-  if (discordId !== uid) {
+  if (user?.id !== uid) {
     return redirectWith(res, uid, {
       error: "Please sign in with Discord first.",
     });
