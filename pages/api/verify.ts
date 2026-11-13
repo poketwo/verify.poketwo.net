@@ -39,6 +39,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   }
 
+  const solveMs = Date.now() - challenge.issuedAt;
   const { origin } = absoluteUrl(req);
   const remoteip = req.headers["cf-connecting-ip"];
   const verified = await verifyHCaptcha(
@@ -58,7 +59,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     body: JSON.stringify({
       uid,
       secret: env.WEBHOOK_SECRET,
-      solve_ms: Date.now() - challenge.issuedAt,
+      solve_ms: solveMs,
     }),
   });
   if (!whResp.ok) return redirectWith(res, uid, { error: "Unexpected error." });
