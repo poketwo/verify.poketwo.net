@@ -61,8 +61,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       secret: env.WEBHOOK_SECRET,
       solve_ms: solveMs,
     }),
-  });
-  if (!whResp.ok) return redirectWith(res, uid, { error: "Unexpected error." });
+  }).catch(() => null);
+  if (!whResp?.ok)
+    return redirectWith(res, uid, { error: "Unexpected error." });
 
   return redirectWith(res, uid, {
     success: "Thanks for verifying! You can now close this page.",

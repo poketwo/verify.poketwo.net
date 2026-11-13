@@ -20,13 +20,17 @@ export const verifyHCaptcha = async (
   });
   if (remoteip) body.set("remoteip", remoteip);
 
-  const resp = await fetch(SITEVERIFY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  if (!resp.ok) return false;
+  try {
+    const resp = await fetch(SITEVERIFY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    if (!resp.ok) return false;
 
-  const json = <SiteverifyResponse>await resp.json();
-  return json.success && json.hostname === hostname;
+    const json = <SiteverifyResponse>await resp.json();
+    return json.success && json.hostname === hostname;
+  } catch {
+    return false;
+  }
 };
