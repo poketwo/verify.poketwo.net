@@ -5,7 +5,7 @@ import { useState } from "react";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { createChallenge } from "~/lib/challenge";
 import publicEnv from "~/lib/public-env";
-import { getSession } from "~/lib/session";
+import { getSession, signedInUser } from "~/lib/session";
 import { isUid } from "~/lib/uid";
 
 type AlertProps = {
@@ -35,17 +35,67 @@ const Alert = ({ success, message }: AlertProps) => {
   );
 };
 
-type PageProps = {
-  nonce: string | null;
+type Account = {
+  id: string;
+  name: string;
+  username: string;
+  avatarUrl: string;
 };
 
-const SignIn = ({ uid }: { uid: string }) => (
+type PageProps = {
+  nonce: string | null;
+  account: Account | null;
+};
+
+const DEFAULT_AVATAR_COUNT = 6;
+
+const avatarUrl = (id: string, avatar: string | null) =>
+  avatar
+    ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=64`
+    : `https://cdn.discordapp.com/embed/avatars/${Number(
+        (BigInt(id) >> BigInt(22)) % BigInt(DEFAULT_AVATAR_COUNT),
+      )}.png`;
+
+const loginUrl = (uid: string) => `/api/login?${new URLSearchParams({ uid })}`;
+
+const SignedInAs = ({ uid, account }: { uid: string; account: Account }) => (
+  <div className="w-full rounded-md bg-discord-darker p-3 flex items-center space-x-3">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src={account.avatarUrl}
+      alt=""
+      className="h-10 w-10 rounded-full flex-shrink-0"
+    />
+    <div className="min-w-0 flex-1">
+      <p className="text-xs text-gray-400">Signed in as</p>
+      <p className="text-sm font-semibold truncate">{account.name}</p>
+      <p className="text-xs text-gray-400 truncate">@{account.username}</p>
+      <p className="text-xs text-gray-400">{account.id}</p>
+    </div>
+    <a
+      href={loginUrl(uid)}
+      className="flex-shrink-0 px-2 py-1 text-xs font-medium rounded-md bg-discord-button hover:opacity-90"
+    >
+      Switch account
+    </a>
+  </div>
+);
+
+const SignIn = ({
+  uid,
+  wrongAccount,
+}: {
+  uid: string;
+  wrongAccount: boolean;
+}) => (
   <>
     <p className="text-sm text-gray-300">
-      Sign in with Discord first so we know it&apos;s you.
+      {wrongAccount
+        ? "This captcha is for a different Discord account. Sign in with that one instead."
+        : "Sign in with Discord first so we know it\u2019s you."}
     </p>
     <a
-      href={`/api/login?${new URLSearchParams({ uid })}`}
+      href={loginUrl(uid)}
       className="px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-discord-blurple hover:opacity-90"
     >
       Sign in with Discord
@@ -83,7 +133,7 @@ const Captcha = ({ uid, nonce }: { uid: string; nonce: string }) => {
   );
 };
 
-const Page = ({ nonce }: PageProps) => {
+const Page = ({ nonce, account }: PageProps) => {
   const { uid, error, success } = useRouter().query;
   if (typeof uid !== "string") return null;
 
@@ -96,7 +146,12 @@ const Page = ({ nonce }: PageProps) => {
         {!success && (
           <>
             <h1 className="text-2xl font-bold">Please verify to continue</h1>
-            {nonce ? <Captcha uid={uid} nonce={nonce} /> : <SignIn uid={uid} />}
+            {account && <SignedInAs uid={uid} account={account} />}
+            {nonce ? (
+              <Captcha uid={uid} nonce={nonce} />
+            ) : (
+              <SignIn uid={uid} wrongAccount={account !== null} />
+            )}
           </>
         )}
       </div>
@@ -113,12 +168,21 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   if (!isUid(uid)) return { notFound: true };
 
   const session = await getSession(req, res);
-  if (session.discordId !== uid) return { props: { nonce: null } };
+  const user = signedInUser(session);
+  const account = user
+    ? {
+        id: user.id,
+        name: user.globalName ?? user.username,
+        username: user.username,
+        avatarUrl: avatarUrl(user.id, user.avatar),
+      }
+    : null;
+  if (user?.id !== uid) return { props: { nonce: null, account } };
 
   session.challenge = createChallenge(uid);
   await session.save();
 
-  return { props: { nonce: session.challenge.nonce } };
+  return { props: { nonce: session.challenge.nonce, account } };
 };
 
 export default Page;

@@ -11,7 +11,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(400).end();
 
   delete session.oauth;
-  delete session.discordId;
+  delete session.user;
 
   const { origin } = absoluteUrl(req);
   const token = await oauth.tokenRequest({
@@ -30,7 +30,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.redirect(`/captcha/${pending.uid}?${params}`);
   }
 
-  session.discordId = user.id;
+  session.user = {
+    id: user.id,
+    username: user.username,
+    globalName: user.global_name,
+    avatar: user.avatar ?? null,
+    signedInAt: Date.now(),
+  };
   await session.save();
 
   return res.redirect(`/captcha/${pending.uid}`);

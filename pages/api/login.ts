@@ -18,6 +18,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const url = oauth.generateAuthUrl({
     state,
     scope: "identify",
+    prompt: "consent",
     redirectUri: `${origin}/api/callback`,
   });
 
