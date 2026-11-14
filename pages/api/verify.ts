@@ -5,6 +5,11 @@ import { isValidChallenge } from "~/lib/challenge";
 import { verifyHCaptcha } from "~/lib/hcaptcha";
 import { getSession, signedInUser } from "~/lib/session";
 import { isUid } from "~/lib/uid";
+import { networkFingerprint } from "~/lib/network";
+
+const VERIFIED_MESSAGE = "Thanks for verifying! You can now close this page.";
+const NETWORK_SUSPENDED_MESSAGE =
+  "Thanks for verifying! Your account is still restricted because this network is suspended. Turn off any VPN or proxy, or switch to mobile data, and verify again.";
 
 const redirectWith = (
   res: NextApiResponse,
@@ -54,6 +59,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   }
 
+  const network = networkFingerprint(req);
   const whResp = await fetch(env.WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -61,13 +67,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       uid,
       secret: env.WEBHOOK_SECRET,
       solve_ms: solveMs,
+      ...(network && { network }),
     }),
   }).catch(() => null);
   if (!whResp?.ok)
     return redirectWith(res, uid, { error: "Unexpected error." });
 
+  const whResult = await whResp.json().catch(() => null);
   return redirectWith(res, uid, {
-    success: "Thanks for verifying! You can now close this page.",
+    success: whResult?.network_suspended
+      ? NETWORK_SUSPENDED_MESSAGE
+      : VERIFIED_MESSAGE,
   });
 };
 

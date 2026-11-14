@@ -129,6 +129,15 @@ const Captcha = ({ uid, nonce }: { uid: string; nonce: string }) => {
       >
         Verify
       </button>
+
+      <p className="text-xs text-gray-500">
+        To stop automated and linked accounts, verifying records a one-way
+        hash of your network. Your IP address isn&apos;t stored. See the{" "}
+        <a href="https://poketwo.net/privacy" className="underline">
+          Privacy Policy
+        </a>
+        .
+      </p>
     </form>
   );
 };
