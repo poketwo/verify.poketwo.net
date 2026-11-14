@@ -12,7 +12,16 @@ module.exports = {
   },
   darkMode: false, // or 'media' or 'class'
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        discord: {
+          dark: "#313338",
+          blurple: "#5865F2",
+          darker: "#2B2D31",
+          button: "#4E5058",
+        },
+      },
+    },
   },
   variants: {
     extend: {
