@@ -8,8 +8,6 @@ import { isUid } from "~/lib/uid";
 import { networkFingerprint } from "~/lib/network";
 
 const VERIFIED_MESSAGE = "Thanks for verifying! You can now close this page.";
-const NETWORK_SUSPENDED_MESSAGE =
-  "Thanks for verifying! Your account is still restricted because this network is suspended. Turn off any VPN or proxy, or switch to mobile data, and verify again.";
 
 const redirectWith = (
   res: NextApiResponse,
@@ -73,12 +71,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (!whResp?.ok)
     return redirectWith(res, uid, { error: "Unexpected error." });
 
-  const whResult = await whResp.json().catch(() => null);
-  return redirectWith(res, uid, {
-    success: whResult?.network_suspended
-      ? NETWORK_SUSPENDED_MESSAGE
-      : VERIFIED_MESSAGE,
-  });
+  return redirectWith(res, uid, { success: VERIFIED_MESSAGE });
 };
 
 export default handler;
